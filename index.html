@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minecraft Marketplace — Static Catalog</title>
+<meta name="description" content="Browse the Minecraft Bedrock Marketplace catalog. Static mirror served from GitHub Pages.">
+<style>
+  :root {
+    --bg: #0f0c29;
+    --bg-elev: #1a1640;
+    --bg-card: #221d52;
+    --bg-card-hover: #2a2466;
+    --text: #ffffff;
+    --text-muted: #b8b3d6;
+    --text-faint: #8079a8;
+    --accent: #6495ed;
+    --accent-hover: #7ba3f0;
+    --gold: #f5d76e;
+    --green: #4ade80;
+    --red: #f87171;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --max-width: 1400px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse at top, rgba(100, 149, 237, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at bottom, rgba(245, 215, 110, 0.04) 0%, transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+  /* ─── Header ────────────────────────────────────────────────────────── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15, 12, 41, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--gold));
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .search-wrap {
+    flex: 1 1 320px;
+    min-width: 200px;
+    position: relative;
+  }
+  .search-wrap input {
+    width: 100%;
+    padding: 10px 14px 10px 38px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-wrap input::placeholder { color: var(--text-faint); }
+  .search-wrap::before {
+    content: "🔍";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    opacity: 0.6;
+  }
+
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  select, .filter-chip {
+    padding: 8px 14px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  select:hover, .filter-chip:hover { border-color: var(--border-strong); background: var(--bg-card); }
+  select:focus, .filter-chip.active { border-color: var(--accent); }
+  .filter-chip.active { background: rgba(100, 149, 237, 0.15); color: var(--accent); }
+
+  .meta {
+    font-size: 12px;
+    color: var(--text-faint);
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .meta strong { color: var(--text-muted); }
+
+  /* ─── Main grid ──────────────────────────────────────────────────────── */
+  main {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s, box-shadow 0.18s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow);
+  }
+
+  .card-img-wrap {
+    aspect-ratio: 16 / 9;
+    background: var(--bg-elev);
+    position: relative;
+    overflow: hidden;
+  }
+  .card-img-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.3s;
+  }
+  .card-img-wrap img.loading { opacity: 0; }
+  .card-img-wrap img.loaded { opacity: 1; }
+  .card-img-wrap .placeholder {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-faint);
+    font-size: 24px;
+  }
+
+  .card-type-badge {
+    position: absolute;
+    top: 8px; left: 8px;
+    padding: 3px 8px;
+    background: rgba(15, 12, 41, 0.85);
+    backdrop-filter: blur(6px);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: capitalize;
+  }
+  .card-free-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    padding: 3px 8px;
+    background: rgba(74, 222, 128, 0.9);
+    color: #0f0c29;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .card-body {
+    padding: 12px 14px 14px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 36px;
+  }
+  .card-creator {
+    font-size: 12px;
+    color: var(--accent);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+  .card-rating {
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .card-rating .star { font-size: 12px; }
+  .card-rating .count { color: var(--text-faint); margin-left: 2px; }
+
+  /* ─── States ────────────────────────────────────────────────────────── */
+  .state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .state-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.6; }
+  .state h2 { font-size: 18px; color: var(--text); margin-bottom: 6px; }
+  .state p { font-size: 14px; }
+
+  .skeleton-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    height: 280px;
+  }
+  .skeleton-card::before {
+    content: "";
+    display: block;
+    aspect-ratio: 16 / 9;
+    background: linear-gradient(90deg, var(--bg-elev) 0%, var(--bg-card-hover, #2a2466) 50%, var(--bg-elev) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  .skeleton-card::after {
+    content: "";
+    display: block;
+    height: 60px;
+    margin: 12px;
+    background: linear-gradient(90deg, var(--bg-elev) 0%, var(--bg-card-hover, #2a2466) 50%, var(--bg-elev) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  #loader {
+    display: flex;
+    justify-content: center;
+    padding: 32px;
+  }
+  #loader.hidden { display: none; }
+  .spinner {
+    width: 28px; height: 28px;
+    border: 3px solid var(--border-strong);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── Modal ─────────────────────────────────────────────────────────── */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    z-index: 200;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-y: auto;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    max-width: 880px;
+    width: 100%;
+    margin: auto;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: modalIn 0.2s ease-out;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .modal-hero {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: var(--bg-card);
+    overflow: hidden;
+  }
+  .modal-hero img {
+    width: 100%; height: 100%; object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .modal-hero img.loaded { opacity: 1; }
+  .modal-close {
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 36px; height: 36px;
+    background: rgba(15, 12, 41, 0.85);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2;
+    transition: background 0.15s;
+  }
+  .modal-close:hover { background: var(--red); border-color: var(--red); }
+
+  .modal-body {
+    padding: 24px;
+  }
+  .modal-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .modal-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .modal-subtitle {
+    font-size: 13px;
+    color: var(--accent);
+    margin-top: 4px;
+  }
+  .modal-stats {
+    display: flex;
+    gap: 16px;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+  .modal-stat {
+    text-align: center;
+  }
+  .modal-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+  .modal-stat-label {
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .modal-description {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 16px 0;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  .modal-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .modal-section h3 {
+    font-size: 14px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+
+  .screenshot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+  }
+  .screenshot-grid img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: transform 0.15s;
+    background: var(--bg-card);
+  }
+  .screenshot-grid img:hover { transform: scale(1.02); }
+
+  .modal-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .modal-tag {
+    padding: 3px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .modal-faq {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .modal-faq-item h4 {
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .modal-faq-item p {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .modal-howto {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .modal-howto-item {
+    padding: 10px 12px;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+  }
+  .modal-howto-item h4 { font-size: 13px; color: var(--accent); margin-bottom: 4px; }
+  .modal-howto-item p { color: var(--text-muted); }
+
+  .modal-download-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .modal-download-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 13px;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .modal-download-link:hover {
+    border-color: var(--accent);
+    background: var(--bg-card-hover);
+    text-decoration: none;
+  }
+  .modal-download-link .label { color: var(--accent); font-weight: 500; }
+  .modal-download-link .url { color: var(--text-faint); font-size: 11px; font-family: monospace; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .modal-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    font-size: 12px;
+  }
+  .modal-meta-grid div {
+    color: var(--text-faint);
+  }
+  .modal-meta-grid strong {
+    display: block;
+    color: var(--text);
+    font-size: 13px;
+    margin-top: 2px;
+  }
+
+  /* ─── Footer ─────────────────────────────────────────────────────────── */
+  footer {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 40px 24px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  footer a { color: var(--text-muted); }
+
+  /* ─── Responsive ────────────────────────────────────────────────────── */
+  @media (max-width: 640px) {
+    .header-inner { padding: 12px 16px; gap: 12px; }
+    .logo { font-size: 16px; }
+    .logo-icon { width: 28px; height: 28px; font-size: 16px; }
+    main { padding: 16px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .card-body { padding: 10px; }
+    .card-title { font-size: 13px; min-height: 32px; }
+    .modal-body { padding: 16px; }
+    .modal-title { font-size: 18px; }
+  }
+
+  /* ─── Image viewer (lightbox) ───────────────────────────────────────── */
+  .lightbox {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    cursor: zoom-out;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img {
+    max-width: 95%;
+    max-height: 95%;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">🧱</div>
+      <span>Marketplace Catalog</span>
+    </div>
+
+    <div class="search-wrap">
+      <input type="search" id="search" placeholder="Search items, creators, tags…" autocomplete="off">
+    </div>
+
+    <div class="filters" id="categoryFilters">
+      <button class="filter-chip active" data-cat="all">All</button>
+      <button class="filter-chip" data-cat="addon">Add-ons</button>
+      <button class="filter-chip" data-cat="world">Worlds</button>
+      <button class="filter-chip" data-cat="skinpack">Skins</button>
+      <button class="filter-chip" data-cat="texturepack">Textures</button>
+      <button class="filter-chip" data-cat="mashup">Mash-ups</button>
+    </div>
+
+    <select id="sortSelect" title="Sort">
+      <option value="newest">Newest first</option>
+      <option value="rating">Top rated</option>
+      <option value="popular">Most rated</option>
+      <option value="title">A → Z</option>
+    </select>
+
+    <div class="meta" id="meta">
+      <strong id="itemCount">—</strong> items<br>
+      <span id="lastUpdated">loading…</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="stateContainer">
+    <!-- Either the grid, a loading state, or an empty state goes here -->
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div id="loader" class="hidden"><div class="spinner"></div></div>
+</main>
+
+<footer>
+  Static catalog served from GitHub Pages · <a id="footerManifest" href="./api/items/manifest.json">manifest.json</a> ·
+  Data sourced from the public PlayFab Marketplace API (title 20CA2)
+</footer>
+
+<!-- ─── Modal ─────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal" id="modalInner">
+    <div class="modal-hero">
+      <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+      <img id="modalHeroImg" alt="">
+    </div>
+    <div class="modal-body">
+      <div class="modal-header-row">
+        <div>
+          <div class="modal-title" id="modalTitle"></div>
+          <div class="modal-subtitle" id="modalSubtitle"></div>
+        </div>
+        <div class="modal-stats" id="modalStats"></div>
+      </div>
+
+      <div class="modal-description" id="modalDescription"></div>
+
+      <div class="modal-section" id="modalScreenshotsSection" style="display:none">
+        <h3>Screenshots</h3>
+        <div class="screenshot-grid" id="modalScreenshots"></div>
+      </div>
+
+      <div class="modal-section" id="modalHowToSection" style="display:none">
+        <h3 id="modalHowToTitle">How to play</h3>
+        <div class="modal-howto" id="modalHowTo"></div>
+      </div>
+
+      <div class="modal-section" id="modalFaqSection" style="display:none">
+        <h3>FAQ</h3>
+        <div class="modal-faq" id="modalFaq"></div>
+      </div>
+
+      <div class="modal-section" id="modalDownloadSection" style="display:none">
+        <h3>Download URLs</h3>
+        <div class="modal-download-list" id="modalDownloads"></div>
+      </div>
+
+      <div class="modal-section" id="modalTagsSection" style="display:none">
+        <h3>Tags</h3>
+        <div class="modal-tags" id="modalTags"></div>
+      </div>
+
+      <div class="modal-section">
+        <h3>Metadata</h3>
+        <div class="modal-meta-grid" id="modalMeta"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Lightbox ─────────────────────────────────────────────────────── -->
+<div class="lightbox" id="lightbox">
+  <img id="lightboxImg" alt="">
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ─── Config ────────────────────────────────────────────────────────────
+  // Use a relative base so the page works regardless of the GitHub Pages
+  // subpath (https://user.github.io/repo-name/ → relative paths resolve
+  // against /repo-name/, which is exactly where api/items/ lives).
+  const API_BASE = "./api/items";
+  const PAGE_SIZE = 24;            // matches crawler's --page-size default
+  const DETAIL_CACHE_MS = 30 * 24 * 60 * 60 * 1000;  // 30 days
+  const SEARCH_DEBOUNCE_MS = 250;
+
+  // ─── State ──────────────────────────────────────────────────────────────
+  const state = {
+    allItems: [],          // every loaded item (in page order)
+    nextPage: 1,
+    totalPages: null,
+    totalItems: null,
+    category: "all",
+    sort: "newest",
+    search: "",
+    loading: false,
+    ended: false,
+    manifest: null,
+    detailCache: new Map(),  // uuid → detail item
+  };
+
+  // ─── DOM ────────────────────────────────────────────────────────────────
+  const $ = (id) => document.getElementById(id);
+  const grid = $("grid");
+  const stateContainer = $("stateContainer");
+  const loader = $("loader");
+  const searchInput = $("search");
+  const sortSelect = $("sortSelect");
+  const categoryFilters = $("categoryFilters");
+  const itemCountEl = $("itemCount");
+  const lastUpdatedEl = $("lastUpdated");
+
+  // ─── Util ───────────────────────────────────────────────────────────────
+  function escapeHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  function formatNumber(n) {
+    if (n == null || isNaN(n)) return "—";
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+    if (n >= 1_000) return (n / 1_000).toFixed(1) + "k";
+    return String(n);
+  }
+
+  function formatDate(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  }
+
+  function formatBytes(bytes) {
+    if (bytes == null) return "—";
+    const units = ["B", "KB", "MB", "GB"];
+    let n = Number(bytes);
+    let i = 0;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    return n.toFixed(n < 10 ? 1 : 0) + " " + units[i];
+  }
+
+  function categoryLabel(type) {
+    return {
+      addon: "Add-on",
+      world: "World",
+      skinpack: "Skin",
+      texturepack: "Texture",
+      mashup: "Mash-up",
+      persona: "Persona",
+      dlc: "DLC",
+    }[String(type || "").toLowerCase()] || "Item";
+  }
+
+  function categoryIcon(type) {
+    return {
+      addon: "🧩",
+      world: "🌍",
+      skinpack: "👕",
+      texturepack: "🖼️",
+      mashup: "📚",
+      persona: "👤",
+      dlc: "📦",
+    }[String(type || "").toLowerCase()] || "📦";
+  }
+
+  // ─── Manifest fetch (totals + last sync time) ────────────────────────────
+  async function loadManifest() {
+    try {
+      const res = await fetch(`${API_BASE}/manifest.json`, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      state.manifest = await res.json();
+      state.totalItems = state.manifest.totalItems;
+      state.totalPages = state.manifest.pageCount;
+      itemCountEl.textContent = formatNumber(state.manifest.totalItems);
+      lastUpdatedEl.textContent = "updated " + formatDate(state.manifest.generatedAt);
+    } catch (e) {
+      console.warn("manifest.json fetch failed:", e);
+      lastUpdatedEl.textContent = "manifest unavailable";
+    }
+  }
+
+  // ─── Page fetch ─────────────────────────────────────────────────────────
+  async function fetchPage(n) {
+    const res = await fetch(`${API_BASE}/page-${n}.json`, { cache: "force-cache" });
+    if (!res.ok) throw new Error(`page-${n}.json → HTTP ${res.status}`);
+    return res.json();
+  }
+
+  // ─── Item detail fetch (with localStorage cache) ────────────────────────
+  async function fetchDetail(uuid) {
+    if (state.detailCache.has(uuid)) return state.detailCache.get(uuid);
+    // localStorage cache (best-effort — fails silently if too big or unavailable)
+    const lsKey = `mp_detail_${uuid}`;
+    try {
+      const cached = localStorage.getItem(lsKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed._ts && Date.now() - parsed._ts < DETAIL_CACHE_MS) {
+          state.detailCache.set(uuid, parsed.item);
+          return parsed.item;
+        }
+      }
+    } catch (_) {}
+
+    const res = await fetch(`${API_BASE}/item/${encodeURIComponent(uuid)}.json`, { cache: "force-cache" });
+    if (!res.ok) throw new Error(`item detail HTTP ${res.status}`);
+    const json = await res.json();
+    const item = json.item || json;
+    state.detailCache.set(uuid, item);
+    try { localStorage.setItem(lsKey, JSON.stringify({ _ts: Date.now(), item })); } catch (_) {}
+    return item;
+  }
+
+  // ─── Render: card ───────────────────────────────────────────────────────
+  function renderCard(item) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.uuid = item.uuid || item.id;
+    card.dataset.type = item.type || "";
+    card.dataset.title = (item.title || "").toLowerCase();
+    card.dataset.creator = (item.creator || "").toLowerCase();
+    card.dataset.rating = item.rating != null ? String(item.rating) : "";
+    card.dataset.totalRatings = item.totalRatings != null ? String(item.totalRatings) : "0";
+    card.dataset.creationDate = item.creationDate || "";
+
+    const imgSrc = item.image || item.thumbnailUrl || item.packIconUrl || "";
+    const isFree = item.isFree || (item.price != null && item.price === 0);
+
+    card.innerHTML = `
+      <div class="card-img-wrap">
+        ${imgSrc
+          ? `<img class="loading" src="${escapeHtml(imgSrc)}" alt="${escapeHtml(item.title)}" loading="lazy">`
+          : `<div class="placeholder">${categoryIcon(item.type)}</div>`}
+        <div class="card-type-badge">${escapeHtml(categoryLabel(item.type))}</div>
+        ${isFree ? `<div class="card-free-badge">Free</div>` : ""}
+      </div>
+      <div class="card-body">
+        <div class="card-title">${escapeHtml(item.title || "Untitled")}</div>
+        <div class="card-creator">${escapeHtml(item.creator || "Unknown")}</div>
+        <div class="card-footer">
+          <span class="card-rating">
+            ${item.rating != null
+              ? `<span class="star">★</span>${Number(item.rating).toFixed(1)}
+                 <span class="count">(${formatNumber(item.totalRatings || item.ratingCount || 0)})</span>`
+              : `<span style="color:var(--text-faint)">no ratings</span>`}
+          </span>
+          <span>${item.price != null && item.price > 0 ? formatNumber(item.price) + " minecoins" : ""}</span>
+        </div>
+      </div>
+    `;
+
+    // Wire up image load state
+    const img = card.querySelector("img");
+    if (img) {
+      img.addEventListener("load", () => img.classList.replace("loading", "loaded"));
+      img.addEventListener("error", () => {
+        img.remove();
+        const ph = document.createElement("div");
+        ph.className = "placeholder";
+        ph.textContent = categoryIcon(item.type);
+        card.querySelector(".card-img-wrap").appendChild(ph);
+      });
+    }
+
+    card.addEventListener("click", () => openModal(item));
+    return card;
+  }
+
+  function renderSkeletons(count = 12) {
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < count; i++) {
+      const sk = document.createElement("div");
+      sk.className = "skeleton-card";
+      frag.appendChild(sk);
+    }
+    grid.appendChild(frag);
+  }
+
+  function renderEmpty(message, submessage) {
+    stateContainer.innerHTML = `
+      <div class="state">
+        <div class="state-icon">🔍</div>
+        <h2>${escapeHtml(message)}</h2>
+        <p>${escapeHtml(submessage || "")}</p>
+      </div>
+    `;
+  }
+
+  function renderError(message) {
+    stateContainer.innerHTML = `
+      <div class="state">
+        <div class="state-icon">⚠️</div>
+        <h2>Something went wrong</h2>
+        <p>${escapeHtml(message)}</p>
+        <p style="margin-top:12px"><a href="./">Try again</a></p>
+      </div>
+    `;
+  }
+
+  // ─── Filter + sort ──────────────────────────────────────────────────────
+  function applyFiltersAndSort() {
+    // Filter the currently-loaded items by category + search term.
+    let items = state.allItems;
+    if (state.category !== "all") {
+      items = items.filter(it => String(it.type || "").toLowerCase() === state.category);
+    }
+    if (state.search) {
+      const q = state.search.toLowerCase();
+      items = items.filter(it =>
+        (it.title || "").toLowerCase().includes(q) ||
+        (it.creator || "").toLowerCase().includes(q) ||
+        (Array.isArray(it.tags) && it.tags.some(t => String(t).toLowerCase().includes(q)))
+      );
+    }
+
+    // Sort a copy (don't mutate the original — filters re-apply without refetch).
+    items = items.slice();
+    switch (state.sort) {
+      case "rating":
+        items.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case "popular":
+        items.sort((a, b) => (b.totalRatings || b.ratingCount || 0) - (a.totalRatings || a.ratingCount || 0));
+        break;
+      case "title":
+        items.sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
+        break;
+      case "newest":
+      default:
+        items.sort((a, b) => String(b.creationDate || "").localeCompare(String(a.creationDate || "")));
+        break;
+    }
+    return items;
+  }
+
+  function rerender() {
+    const items = applyFiltersAndSort();
+    grid.innerHTML = "";
+    if (items.length === 0 && !state.loading) {
+      if (state.search || state.category !== "all") {
+        renderEmpty("No matches", "Try a different filter or search term.");
+      } else {
+        renderEmpty("No items loaded", "Run the crawler to populate api/items/.");
+      }
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    for (const it of items) frag.appendChild(renderCard(it));
+    grid.appendChild(frag);
+    updateLoaderVisibility();
+  }
+
+  function updateLoaderVisibility() {
+    const items = applyFiltersAndSort();
+    // Show bottom spinner only when we're actively loading more pages and
+    // there isn't a category/search filter that hides everything.
+    if (state.loading && !state.ended) {
+      loader.classList.remove("hidden");
+    } else {
+      loader.classList.add("hidden");
+    }
+  }
+
+  // ─── Load next page ─────────────────────────────────────────────────────
+  async function loadNextPage() {
+    if (state.loading || state.ended) return;
+    if (state.totalPages != null && state.nextPage > state.totalPages) {
+      state.ended = true;
+      updateLoaderVisibility();
+      return;
+    }
+    state.loading = true;
+    updateLoaderVisibility();
+    try {
+      const data = await fetchPage(state.nextPage);
+      const items = Array.isArray(data.items) ? data.items : [];
+      if (items.length === 0) {
+        state.ended = true;
+      } else {
+        state.allItems.push(...items);
+        state.nextPage++;
+        if (data.total) state.totalItems = data.total;
+        if (state.totalPages == null && data.total) {
+          state.totalPages = Math.ceil(data.total / PAGE_SIZE);
+        }
+        if (data.hasMore === false) state.ended = true;
+      }
+      rerender();
+    } catch (e) {
+      console.error("loadNextPage failed:", e);
+      // 404 on next page means we've reached the end of the catalog.
+      if (String(e.message).includes("404")) {
+        state.ended = true;
+        updateLoaderVisibility();
+        if (state.allItems.length === 0) {
+          renderError("No catalog files found. Run the crawler first: python crawl_marketplace.py");
+        }
+      } else if (state.allItems.length === 0) {
+        renderError(e.message);
+      }
+    } finally {
+      state.loading = false;
+      updateLoaderVisibility();
+    }
+  }
+
+  // ─── Infinite scroll ────────────────────────────────────────────────────
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) loadNextPage();
+    }
+  }, { rootMargin: "600px" });
+
+  // Sentinel element that triggers the next page load when scrolled into view.
+  function ensureSentinel() {
+    if (loader._sentinel) return;
+    const sentinel = document.createElement("div");
+    sentinel.style.height = "1px";
+    loader.parentNode.insertBefore(sentinel, loader);
+    io.observe(sentinel);
+    loader._sentinel = sentinel;
+  }
+
+  // ─── Modal ──────────────────────────────────────────────────────────────
+  const modal = $("modal");
+  const modalClose = $("modalClose");
+  const modalHeroImg = $("modalHeroImg");
+  const modalTitle = $("modalTitle");
+  const modalSubtitle = $("modalSubtitle");
+  const modalStats = $("modalStats");
+  const modalDescription = $("modalDescription");
+  const modalScreenshotsSection = $("modalScreenshotsSection");
+  const modalScreenshots = $("modalScreenshots");
+  const modalHowToSection = $("modalHowToSection");
+  const modalHowToTitle = $("modalHowToTitle");
+  const modalHowTo = $("modalHowTo");
+  const modalFaqSection = $("modalFaqSection");
+  const modalFaq = $("modalFaq");
+  const modalDownloadSection = $("modalDownloadSection");
+  const modalDownloads = $("modalDownloads");
+  const modalTagsSection = $("modalTagsSection");
+  const modalTags = $("modalTags");
+  const modalMeta = $("modalMeta");
+
+  function openModal(item) {
+    // Render immediately with the data we already have (from the listing).
+    renderModalFromItem(item);
+    modal.classList.add("open");
+    document.body.style.overflow = "hidden";
+
+    // Then fetch full detail (FAQ, how-to, changelog, download variants, …).
+    const uuid = item.uuid || item.id;
+    if (uuid) {
+      fetchDetail(uuid)
+        .then(detail => {
+          // Merge detail into item (detail has the same compat schema + more fields populated).
+          renderModalFromItem({ ...item, ...detail });
+        })
+        .catch(err => console.warn(`detail fetch failed for ${uuid}:`, err));
+    }
+  }
+
+  function renderModalFromItem(item) {
+    const heroSrc = item.image || item.thumbnailUrl || item.packIconUrl ||
+                    (Array.isArray(item.extraImages) && item.extraImages[0]) || "";
+    if (heroSrc && modalHeroImg.src !== heroSrc) {
+      modalHeroImg.classList.remove("loaded");
+      modalHeroImg.src = heroSrc;
+      modalHeroImg.alt = item.title || "";
+    } else if (!heroSrc) {
+      modalHeroImg.removeAttribute("src");
+    }
+    modalHeroImg.onload = () => modalHeroImg.classList.add("loaded");
+
+    modalTitle.textContent = item.title || "Untitled";
+    modalSubtitle.textContent = `by ${item.creator || "Unknown creator"}`;
+
+    // Stats row
+    const price = item.price != null ? item.price : null;
+    const isFree = item.isFree || price === 0;
+    modalStats.innerHTML = `
+      <div class="modal-stat">
+        <div class="modal-stat-value">${item.rating != null ? Number(item.rating).toFixed(1) + "★" : "—"}</div>
+        <div class="modal-stat-label">${formatNumber(item.totalRatings || item.ratingCount || 0)} ratings</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-value">${isFree ? "Free" : (price != null ? formatNumber(price) : "—")}</div>
+        <div class="modal-stat-label">${isFree ? "" : "minecoins"}</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-value">${escapeHtml(categoryLabel(item.type))}</div>
+        <div class="modal-stat-label">${item.packType || ""}</div>
+      </div>
+    `;
+
+    // Description
+    modalDescription.textContent = item.description || "";
+    modalDescription.style.display = item.description ? "block" : "none";
+
+    // Screenshots
+    const shots = Array.isArray(item.extraImages) ? item.extraImages : [];
+    if (shots.length > 0) {
+      modalScreenshotsSection.style.display = "block";
+      modalScreenshots.innerHTML = shots.map(src =>
+        `<img src="${escapeHtml(src)}" alt="screenshot" loading="lazy">`
+      ).join("");
+      modalScreenshots.querySelectorAll("img").forEach(img => {
+        img.addEventListener("click", () => openLightbox(img.src));
+      });
+    } else {
+      modalScreenshotsSection.style.display = "none";
+    }
+
+    // Panorama (shown above screenshots if present)
+    if (item.imagePanorama || item.panoramaImage || item.panoramaUrl) {
+      const pano = item.imagePanorama || item.panoramaImage || item.panoramaUrl;
+      modalScreenshotsSection.style.display = "block";
+      const panoImg = `<img src="${escapeHtml(pano)}" alt="panorama" loading="lazy">`;
+      modalScreenshots.insertAdjacentHTML("afterbegin", panoImg);
+      modalScreenshots.querySelector("img").addEventListener("click", () => openLightbox(pano));
+    }
+
+    // Trailer
+    if (item.trailer || item.videoUrl || item.youtubeUrl) {
+      const url = item.trailer || item.videoUrl || item.youtubeUrl;
+      // Convert YouTube watch URLs to embed URLs
+      let embedUrl = url;
+      const ytMatch = String(url).match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
+      if (ytMatch) {
+        embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
+      }
+      modalHowToSection.style.display = "block";
+      modalHowToTitle.textContent = "Trailer";
+      modalHowTo.innerHTML = `
+        <div style="position:relative; padding-bottom:56.25%; height:0; border-radius:8px; overflow:hidden;">
+          <iframe src="${escapeHtml(embedUrl)}" style="position:absolute; inset:0; width:100%; height:100%; border:0;"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen></iframe>
+        </div>
+      `;
+    } else {
+      // How-to steps (if any)
+      if (Array.isArray(item.howToEntries) && item.howToEntries.length > 0) {
+        modalHowToSection.style.display = "block";
+        modalHowToTitle.textContent = item.howToTitle || "How to play";
+        modalHowTo.innerHTML = item.howToEntries.map(e => `
+          <div class="modal-howto-item">
+            ${e.heading ? `<h4>${escapeHtml(e.heading)}</h4>` : ""}
+            ${e.content ? `<p>${escapeHtml(e.content)}</p>` : ""}
+          </div>
+        `).join("");
+      } else {
+        modalHowToSection.style.display = "none";
+      }
+    }
+
+    // FAQ
+    if (Array.isArray(item.faqEntries) && item.faqEntries.length > 0) {
+      modalFaqSection.style.display = "block";
+      modalFaq.innerHTML = item.faqEntries.map(e => `
+        <div class="modal-faq-item">
+          ${e.heading ? `<h4>${escapeHtml(e.heading)}</h4>` : ""}
+          ${e.content ? `<p>${escapeHtml(e.content)}</p>` : ""}
+        </div>
+      `).join("");
+    } else {
+      modalFaqSection.style.display = "none";
+    }
+
+    // Downloads
+    const variants = Array.isArray(item.downloadVariants) ? item.downloadVariants : [];
+    if (variants.length > 0) {
+      modalDownloadSection.style.display = "block";
+      const links = [];
+      for (const v of variants) {
+        for (const url of (v.urls || [])) {
+          links.push({ label: v.label || "Download", url });
+        }
+      }
+      modalDownloads.innerHTML = links.map(l => `
+        <a class="modal-download-link" href="${escapeHtml(l.url)}" target="_blank" rel="noopener">
+          <span class="label">⬇ ${escapeHtml(l.label)}</span>
+          <span class="url">${escapeHtml(l.url)}</span>
+        </a>
+      `).join("");
+    } else {
+      modalDownloadSection.style.display = "none";
+    }
+
+    // Tags
+    const tags = Array.isArray(item.tags) ? item.tags : [];
+    if (tags.length > 0) {
+      modalTagsSection.style.display = "block";
+      modalTags.innerHTML = tags.slice(0, 30).map(t =>
+        `<span class="modal-tag">${escapeHtml(t)}</span>`
+      ).join("");
+    } else {
+      modalTagsSection.style.display = "none";
+    }
+
+    // Metadata grid
+    modalMeta.innerHTML = `
+      <div>Version<strong>${escapeHtml(item.version || "—")}</strong></div>
+      <div>Content size<strong>${item.contentSize != null ? formatBytes(item.contentSize) : "—"}</strong></div>
+      <div>Created<strong>${formatDate(item.creationDate)}</strong></div>
+      <div>Modified<strong>${formatDate(item.lastModifiedDate)}</strong></div>
+      <div>Pack type<strong>${escapeHtml(item.packType || "—")}</strong></div>
+      <div>UUID<strong style="font-family:monospace;font-size:11px;word-break:break-all">${escapeHtml(item.uuid || item.id || "—")}</strong></div>
+    `;
+  }
+
+  function closeModal() {
+    modal.classList.remove("open");
+    document.body.style.overflow = "";
+    // Stop any embedded YouTube video from continuing to play in the background
+    modalHowTo.innerHTML = "";
+  }
+  modalClose.addEventListener("click", closeModal);
+  modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+  // ─── Lightbox ───────────────────────────────────────────────────────────
+  const lightbox = $("lightbox");
+  const lightboxImg = $("lightboxImg");
+  function openLightbox(src) {
+    lightboxImg.src = src;
+    lightbox.classList.add("open");
+  }
+  lightbox.addEventListener("click", () => lightbox.classList.remove("open"));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && lightbox.classList.contains("open")) {
+      lightbox.classList.remove("open");
+    }
+  });
+
+  // ─── Wire up filters ───────────────────────────────────────────────────
+  categoryFilters.addEventListener("click", (e) => {
+    const chip = e.target.closest(".filter-chip");
+    if (!chip) return;
+    categoryFilters.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    state.category = chip.dataset.cat;
+    rerender();
+  });
+
+  sortSelect.addEventListener("change", () => {
+    state.sort = sortSelect.value;
+    rerender();
+  });
+
+  let searchTimer;
+  searchInput.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      state.search = searchInput.value.trim().toLowerCase();
+      rerender();
+    }, SEARCH_DEBOUNCE_MS);
+  });
+
+  // ─── Init ───────────────────────────────────────────────────────────────
+  async function init() {
+    ensureSentinel();
+    renderSkeletons(12);
+    await loadManifest();
+    // Replace skeletons with first real page (or empty state).
+    grid.innerHTML = "";
+    await loadNextPage();
+    if (state.allItems.length === 0 && !state.ended) {
+      // Already rendered error/empty inside loadNextPage
+      return;
+    }
+    // If the first page returned very few items and there might be more, kick
+    // off the next load immediately so the grid fills out.
+    if (!state.ended) loadNextPage();
+  }
+
+  init().catch(err => {
+    console.error("init failed:", err);
+    renderError(err.message || "Unknown error");
+  });
+})();
+</script>
+
+</body>
+</html>
