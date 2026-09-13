@@ -583,6 +583,78 @@
     object-fit: contain;
     border-radius: var(--radius-sm);
   }
+
+  /* ─── Diagnostic status bar ──────────────────────────────────────────── */
+  #diagBar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(15, 12, 41, 0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border-strong);
+    padding: 8px 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-height: 36px;
+  }
+  #diagBar.ok { border-top-color: var(--green); }
+  #diagBar.error { border-top-color: var(--red); background: rgba(60, 20, 20, 0.95); }
+  #diagBar .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    flex-shrink: 0;
+  }
+  #diagBar.ok .dot { background: var(--green); }
+  #diagBar.error .dot { background: var(--red); animation: pulse 1s infinite; }
+  #diagBar.loading .dot { background: var(--accent); animation: pulse 0.8s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  #diagBar .msg { flex: 1; min-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #diagBar .msg strong { color: var(--text); }
+  #diagBar .msg code { color: var(--accent); font-family: monospace; font-size: 11px; }
+  #diagBar button {
+    padding: 4px 12px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  #diagBar button:hover { background: var(--accent-hover); }
+  #diagBar .toggle {
+    background: transparent;
+    color: var(--text-faint);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+  #diagBar .toggle:hover { color: var(--text); border-color: var(--border-strong); }
+  #diagDetails {
+    position: fixed;
+    bottom: 36px; left: 0; right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background: rgba(15, 12, 41, 0.98);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border-strong);
+    padding: 8px 16px;
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--text-muted);
+    z-index: 149;
+    display: none;
+  }
+  #diagDetails.open { display: block; }
+  #diagDetails .log-line { padding: 2px 0; border-bottom: 1px solid var(--border); }
+  #diagDetails .log-line.error { color: var(--red); }
+  #diagDetails .log-line.ok { color: var(--green); }
+  body { padding-bottom: 36px; } /* offset for the fixed bar */
 </style>
 </head>
 <body>
@@ -691,6 +763,15 @@
   <img id="lightboxImg" alt="">
 </div>
 
+<!-- ─── Diagnostic status bar ──────────────────────────────────────────── -->
+<div id="diagDetails"></div>
+<div id="diagBar">
+  <span class="dot"></span>
+  <span class="msg" id="diagMsg">Initializing…</span>
+  <button class="toggle" id="diagToggle" title="Show/hide log">▾ log</button>
+  <button id="diagRetry" style="display:none">Retry</button>
+</div>
+
 <script>
 (() => {
   "use strict";
@@ -784,27 +865,96 @@
     }[String(type || "").toLowerCase()] || "📦";
   }
 
+  // ─── Diagnostic helpers ─────────────────────────────────────────────────
+  const diagBar = document.getElementById("diagBar");
+  const diagMsg = document.getElementById("diagMsg");
+  const diagDetails = document.getElementById("diagDetails");
+  const diagToggle = document.getElementById("diagToggle");
+  const diagRetry = document.getElementById("diagRetry");
+  const diagLogs = [];
+
+  function diagLog(message, kind) {
+    const ts = new Date().toLocaleTimeString();
+    const line = `[${ts}] ${message}`;
+    diagLogs.push({ line, kind: kind || "" });
+    if (diagLogs.length > 200) diagLogs.shift();
+    if (diagDetails.classList.contains("open")) renderDiagDetails();
+    console.log(line);
+  }
+
+  function renderDiagDetails() {
+    diagDetails.innerHTML = diagLogs
+      .map(l => `<div class="log-line ${l.kind}">${escapeHtml(l.line)}</div>`)
+      .join("");
+    diagDetails.scrollTop = diagDetails.scrollHeight;
+  }
+
+  function setDiag(message, kind) {
+    diagMsg.innerHTML = message;
+    diagBar.className = kind || "";
+    if (kind === "error") {
+      diagRetry.style.display = "inline-block";
+    } else {
+      diagRetry.style.display = "none";
+    }
+  }
+
+  diagToggle.addEventListener("click", () => {
+    const open = diagDetails.classList.toggle("open");
+    diagToggle.textContent = open ? "▴ log" : "▾ log";
+    if (open) renderDiagDetails();
+  });
+  diagRetry.addEventListener("click", () => {
+    diagLog("Manual retry triggered");
+    location.reload();
+  });
+
   // ─── Manifest fetch (totals + last sync time) ────────────────────────────
   async function loadManifest() {
+    setDiag("Loading <code>manifest.json</code>…", "loading");
+    diagLog(`GET ${API_BASE}/manifest.json`);
     try {
       const res = await fetch(`${API_BASE}/manifest.json`, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      diagLog(`  → HTTP ${res.status} ${res.statusText}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
       state.manifest = await res.json();
       state.totalItems = state.manifest.totalItems;
       state.totalPages = state.manifest.pageCount;
       itemCountEl.textContent = formatNumber(state.manifest.totalItems);
       lastUpdatedEl.textContent = "updated " + formatDate(state.manifest.generatedAt);
+      diagLog(`  manifest OK: ${state.manifest.totalItems} items, ${state.manifest.pageCount} pages, generated ${state.manifest.generatedAt}`, "ok");
+      setDiag(`Manifest loaded: <strong>${formatNumber(state.manifest.totalItems)}</strong> items across <strong>${state.manifest.pageCount}</strong> pages`, "ok");
     } catch (e) {
-      console.warn("manifest.json fetch failed:", e);
-      lastUpdatedEl.textContent = "manifest unavailable";
+      diagLog(`  manifest FAILED: ${e.message}`, "error");
+      setDiag(`manifest.json fetch failed: ${escapeHtml(e.message)}`, "error");
+      throw e;
     }
+  }
+
+  // Cache-busting version derived from the manifest's generatedAt timestamp.
+  // When the crawler re-runs and updates the catalog, this changes and the
+  // browser refetches all pages. Without this, a previously-cached 404 (from
+  // before the JSON files existed) could be reused indefinitely.
+  function cacheVersion() {
+    if (state.manifest && state.manifest.generatedAt) {
+      return state.manifest.generatedAt.replace(/[^0-9a-zA-Z]/g, "");
+    }
+    return "1";
   }
 
   // ─── Page fetch ─────────────────────────────────────────────────────────
   async function fetchPage(n) {
-    const res = await fetch(`${API_BASE}/page-${n}.json`, { cache: "force-cache" });
-    if (!res.ok) throw new Error(`page-${n}.json → HTTP ${res.status}`);
-    return res.json();
+    const url = `${API_BASE}/page-${n}.json?v=${cacheVersion()}`;
+    diagLog(`GET ${url}`);
+    // Use cache: "default" — respects HTTP cache headers but won't serve a
+    // stale 404 the way "force-cache" would. The ?v= query param ensures
+    // a fresh fetch whenever the catalog is updated.
+    const res = await fetch(url, { cache: "default" });
+    diagLog(`  → HTTP ${res.status} ${res.statusText}`);
+    if (!res.ok) throw new Error(`page-${n}.json → HTTP ${res.status} ${res.statusText}`);
+    const data = await res.json();
+    diagLog(`  page ${n} OK: ${data.items ? data.items.length : 0} items`, "ok");
+    return data;
   }
 
   // ─── Item detail fetch (with localStorage cache) ────────────────────────
@@ -823,7 +973,8 @@
       }
     } catch (_) {}
 
-    const res = await fetch(`${API_BASE}/item/${encodeURIComponent(uuid)}.json`, { cache: "force-cache" });
+    const url = `${API_BASE}/item/${encodeURIComponent(uuid)}.json?v=${cacheVersion()}`;
+    const res = await fetch(url, { cache: "default" });
     if (!res.ok) throw new Error(`item detail HTTP ${res.status}`);
     const json = await res.json();
     const item = json.item || json;
@@ -907,15 +1058,27 @@
     `;
   }
 
-  function renderError(message) {
+  function renderError(message, failedUrl) {
     stateContainer.innerHTML = `
       <div class="state">
         <div class="state-icon">⚠️</div>
         <h2>Something went wrong</h2>
         <p>${escapeHtml(message)}</p>
-        <p style="margin-top:12px"><a href="./">Try again</a></p>
+        ${failedUrl ? `<p style="margin-top:8px;font-size:12px;color:var(--text-faint)">Failed URL: <code style="color:var(--accent)">${escapeHtml(failedUrl)}</code></p>` : ""}
+        <p style="margin-top:16px">
+          <button id="errorRetry" style="padding:8px 20px;background:var(--accent);color:white;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-size:14px">↻ Retry</button>
+        </p>
+        <p style="margin-top:12px;font-size:12px">
+          <a href="./api/items/manifest.json" target="_blank">Open manifest.json</a> ·
+          <a href="./api/items/page-1.json" target="_blank">Open page-1.json</a>
+        </p>
+        <p style="margin-top:16px;font-size:12px;color:var(--text-faint);max-width:500px;margin-left:auto;margin-right:auto">
+          If page-1.json opens when you click the link above but the page still shows this error,
+          press <strong>Ctrl+Shift+R</strong> (hard reload) — your browser may have cached an old 404.
+        </p>
       </div>
     `;
+    document.getElementById("errorRetry").addEventListener("click", () => location.reload());
   }
 
   // ─── Filter + sort ──────────────────────────────────────────────────────
@@ -988,15 +1151,20 @@
     if (state.totalPages != null && state.nextPage > state.totalPages) {
       state.ended = true;
       updateLoaderVisibility();
+      if (state.allItems.length > 0) {
+        setDiag(`Loaded all <strong>${state.allItems.length}</strong> items. End of catalog.`, "ok");
+      }
       return;
     }
     state.loading = true;
     updateLoaderVisibility();
+    setDiag(`Loading <code>page-${state.nextPage}.json</code>…`, "loading");
     try {
       const data = await fetchPage(state.nextPage);
       const items = Array.isArray(data.items) ? data.items : [];
       if (items.length === 0) {
         state.ended = true;
+        diagLog(`page-${state.nextPage}.json returned 0 items — marking end of catalog`);
       } else {
         state.allItems.push(...items);
         state.nextPage++;
@@ -1007,17 +1175,29 @@
         if (data.hasMore === false) state.ended = true;
       }
       rerender();
+      if (state.ended && state.allItems.length > 0) {
+        setDiag(`Loaded all <strong>${state.allItems.length}</strong> items. End of catalog.`, "ok");
+      } else {
+        setDiag(`Loaded <strong>${state.allItems.length}</strong> items (page ${state.nextPage - 1} done)`, "ok");
+      }
     } catch (e) {
       console.error("loadNextPage failed:", e);
+      const failedUrl = `${API_BASE}/page-${state.nextPage}.json`;
       // 404 on next page means we've reached the end of the catalog.
       if (String(e.message).includes("404")) {
         state.ended = true;
         updateLoaderVisibility();
         if (state.allItems.length === 0) {
-          renderError("No catalog files found. Run the crawler first: python crawl_marketplace.py");
+          setDiag(`page-1.json returned 404. The crawler hasn't been run yet, or the files weren't pushed to GitHub.`, "error");
+          renderError("No catalog files found. Run the crawler first: <code>python crawl_marketplace.py</code>", failedUrl);
+        } else {
+          setDiag(`Reached end of catalog at page ${state.nextPage} (404). Loaded <strong>${state.allItems.length}</strong> items total.`, "ok");
         }
       } else if (state.allItems.length === 0) {
-        renderError(e.message);
+        setDiag(`Failed to load page-1.json: ${escapeHtml(e.message)}`, "error");
+        renderError(e.message, failedUrl);
+      } else {
+        setDiag(`Failed to load page ${state.nextPage}: ${escapeHtml(e.message)} — showing ${state.allItems.length} items loaded so far`, "error");
       }
     } finally {
       state.loading = false;
@@ -1282,7 +1462,19 @@
   async function init() {
     ensureSentinel();
     renderSkeletons(12);
-    await loadManifest();
+    diagLog(`API_BASE = ${API_BASE}`);
+    diagLog(`Current location = ${location.href}`);
+    diagLog(`Resolves to: ${new URL(API_BASE, location.href).href}`);
+
+    try {
+      await loadManifest();
+    } catch (e) {
+      // Manifest failed — try loading page-1.json directly as a fallback.
+      diagLog("Manifest failed, trying page-1.json directly…");
+      grid.innerHTML = "";
+      await loadNextPage();
+      return;
+    }
     // Replace skeletons with first real page (or empty state).
     grid.innerHTML = "";
     await loadNextPage();
@@ -1297,6 +1489,7 @@
 
   init().catch(err => {
     console.error("init failed:", err);
+    diagLog(`init() crashed: ${err.stack || err.message}`, "error");
     renderError(err.message || "Unknown error");
   });
 })();
